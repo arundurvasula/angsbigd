@@ -6,14 +6,14 @@
 #SBATCH -e errors/error-%j.txt
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=32
-
-# script to run ANGSD on hapmap2 bam files
+# run with `sbatch angsdo.sh BKNv3`
+# script to run ANGSD on hapmap3 bam files
 set -e
 set -u
 
 #module load angsd
 
-angsdir=/home/adurvasu/angsd0.602
+angsdir=/home/adurvasu/angsd
 taxon=$1
 windowsize=1000
 step=500
@@ -26,7 +26,7 @@ minMapQ=30
 cpu=32
 #range=""
 range="-r 1:"
-
+rf="-rf ./data/range.txt"
 #(estimate an SFS)
 # -bam list of paths to bamfiles you want to use
 # -out output file (prior for SFS I believe)
@@ -38,11 +38,11 @@ range="-r 1:"
 # -setMaxDepth 20 sets max depth to accept -- useful to deal with highly repetitive regions
 # -baq 1=realign locally (I think)
 # -GL $glikehood 1 is samtools, 2 is GATK, 3 SOAPsnp 4 SYK
-# -r 10:1- ony analyze this range (here all of chromosome 10)
+# -r 10: ony analyze this range (here all of chromosome 10)
 # -P 8 use 8 threads
 # -indF individiual inbreeding coefficient. for inbred lines just make a files of "1" on each line for each bamfile. otherwise use ngsF to estimate (see inbreeding.sh script)
 
-command1="-bam data/"$taxon"_list.txt -out temp/"$taxon" -doMajorMinor 1 -doMaf 1 -indF data/$taxon.indF -doSaf 1 -uniqueOnly 0 -anc data/TRIP.fa.gz -minMapQ $minMapQ -minQ 20 -nInd $nInd -minInd -baq 1 -ref /home/adurvasu/genomes/Zea_mays.AGPv3.21.dna.genome.fa.gz -GL $glikehood -P $cpu  $range"
+command1="-bam data/"$taxon"_list.txt -out temp/"$taxon" -doMajorMinor 1 -doMaf 1 -indF data/$taxon.indF -doSaf 2 -uniqueOnly 0 -anc /group/jrigrp3/bottleneckProject/genomes/TRIP.fa.gz -minMapQ $minMapQ -minQ 20 -nInd $nInd -baq 1 -ref /group/jrigrp3/bottleneckProject/genomes/Zea_mays.AGPv3.22.dna.genome.fa -GL $glikehood -P $cpu $rf"
 echo $command1
 time $angsdir/angsd $command1
 
@@ -71,7 +71,7 @@ time $angsdir/misc/emOptim2 $command2 > results/"$taxon".sfs
 #10      3371    -8.822116       -10.395367      -7.431857       -14.041094      -11.062746
 #10      3372    -8.840759       -10.415518      -7.448764       -14.064022      -11.082968
 #10	26926	-1.480456	-0.671793	-211.328599	-0.694813	-0.683237
-command3="-bam data/"$taxon"_list.txt -out results/"$taxon" -doThetas 1 -doSaf 1 -GL $glikehood -indF data/$taxon.indF -pest results/"$taxon".sfs -anc data/TRIP.fa.gz -uniqueOnly 0 -minMapQ $minMapQ -minQ 20 -nInd $nInd -minInd $minInd -baq 1 -ref  /home/adurvasu/genomes/Zea_mays.AGPv3.21.dna.genome.fa.gz -P $cpu $range"
+command3="-bam data/"$taxon"_list.txt -out results/"$taxon" -doMajorMinor 1 -doMaf 1 -doThetas 1 -doSaf 2 -GL $glikehood -indF data/$taxon.indF -pest results/"$taxon".sfs -anc /group/jrigrp3/bottleneckProject/genomes/TRIP.fa.gz -uniqueOnly 0 -minMapQ $minMapQ -minQ 20 -nInd $nInd -minInd $minInd -baq 1 -ref  /group/jrigrp3/bottleneckProject/genomes/Zea_mays.AGPv3.22.dna.genome.fa -P $cpu $rf"
 echo $command3
 time $angsdir/angsd $command3 
 
@@ -91,4 +91,4 @@ time $angsdir/misc/thetaStat $command4
 # with information for each window (see ANGSD online documentation for some explanation of columns)
 command5="do_stat results/"$taxon" -nChr $n -win $windowsize -step $step"
 echo $command5
-time $angsdir/misc/thetaStat 
+time $angsdir/misc/thetaStat $command5
